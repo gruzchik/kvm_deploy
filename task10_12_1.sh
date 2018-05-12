@@ -80,15 +80,32 @@ cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 
 mkisofs -o "${VM1_CONFIG_ISO}" -V cidata -r -J ${SCRIPTPATH}/config-drives/vm1-config
 mkisofs -o "${VM2_CONFIG_ISO}" -V cidata -r -J ${SCRIPTPATH}/config-drives/vm2-config
 
-## create vm1
-#virt-install \
-#--connect qemu:///system \
-#--name ${VM1_NAME} \
-#--ram ${VM1_MB_RAM} --vcpus=${VM1_NUM_CPU} --hvm \
-#--os-type=linux --os-variant=ubuntu16.04 \
-#--disk path=${VM1_HDD},format=qcow2,bus=virtio,cache=none \
-#--location 'http://us.archive.ubuntu.com/ubuntu/dists/xenial/main/installer-amd64/' \
-#--graphics vnc,port=-1 \
-#--noautoconsole --quiet --virt-type kvm --import
-##--disk path=${VM1_CONFIG_ISO},device=cdrom \
-##--network network=default,mac='52:54:00:07:ca:ba' \
+# create vm1
+echo 'create vm1...'
+virt-install \
+--connect qemu:///system \
+--name ${VM1_NAME} \
+--ram ${VM1_MB_RAM} --vcpus=${VM1_NUM_CPU} --hvm \
+--os-type=linux --os-variant=generic \
+--disk path=${VM1_HDD},format=qcow2,bus=virtio,cache=none \
+--disk path=${VM1_CONFIG_ISO},device=cdrom \
+--network network=${EXTERNAL_NET_NAME} \
+--network network=${INTERNAL_NET_NAME} \
+--network network=${MANAGEMENT_NET_NAME} \
+--graphics vnc,port=-1 \
+--noautoconsole --quiet --virt-type kvm --import
+
+# create vm2
+echo 'create vm2...'
+virt-install \
+--connect qemu:///system \
+--name ${VM2_NAME} \
+--ram ${VM2_MB_RAM} --vcpus=${VM2_NUM_CPU} --${VM_TYPE} \
+--os-type=linux --os-variant=generic \
+--disk path=${VM2_HDD},format=qcow2,bus=virtio,cache=none \
+--disk path=${VM2_CONFIG_ISO},device=cdrom \
+--network network=${EXTERNAL_NET_NAME} \
+--network network=${INTERNAL_NET_NAME} \
+--network network=${MANAGEMENT_NET_NAME} \
+--graphics vnc,port=-1 \
+--noautoconsole --quiet --virt-type "${VM_VIRT_TYPE}" --import
