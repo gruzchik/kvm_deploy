@@ -9,6 +9,7 @@ echo vm1=${VM1_NAME}
 echo vm2=${VM2_NAME}
 
 #create xml external network and start net
+[ ! -d ${SCRIPTPATH}/networks ] && mkdir -p ${SCRIPTPATH}/networks
 MAC=52:54:00:`(date; cat /proc/interrupts) | md5sum | sed -r 's/^(.{6}).*$/\1/; s/([0-9a-f]{2})/\1:/g; s/:$//;'`
 cat <<EOF > ${SCRIPTPATH}/networks/external.xml
 <network>
@@ -75,6 +76,12 @@ if [ ! -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qc
 fi
 cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 ${VM1_HDD}
 cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 ${VM2_HDD}
+
+# starting configuration for vm1
+[ ! -d ${SCRIPTPATH}/config-drives/vm1-config ] && mkdir -p ${SCRIPTPATH}/config-drives/vm1-config
+
+# starting configuration for vm1
+[ ! -d ${SCRIPTPATH}/config-drives/vm2-config ] && mkdir -p ${SCRIPTPATH}/config-drives/vm2-config
 
 # create iso for vm1 and vm2
 mkisofs -o "${VM1_CONFIG_ISO}" -V cidata -r -J ${SCRIPTPATH}/config-drives/vm1-config
