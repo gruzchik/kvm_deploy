@@ -54,11 +54,31 @@ virsh net-define ${SCRIPTPATH}/networks/management.xml
 virsh net-autostart ${MANAGEMENT_NET_NAME}
 virsh net-start ${MANAGEMENT_NET_NAME}
 
-# create disk for vm1
+## create disk for vm1
+#VM1_HDD_PATH=$(dirname ${VM1_HDD})
+#[ ! -d ${VM1_HDD_PATH} ] && mkdir -p ${VM1_HDD_PATH}
+#echo "qemu-img create -f qcow2 ${VM1_HDD} 5Gb"
+#qemu-img create -f qcow2 ${VM1_HDD} 5G
+
+# prepare disk for vm1 and vm2
 VM1_HDD_PATH=$(dirname ${VM1_HDD})
 [ ! -d ${VM1_HDD_PATH} ] && mkdir -p ${VM1_HDD_PATH}
-echo "qemu-img create -f qcow2 ${VM1_HDD} 5Gb"
-qemu-img create -f qcow2 ${VM1_HDD} 5G
+VM2_HDD_PATH=$(dirname ${VM2_HDD})
+[ ! -d ${VM2_HDD_PATH} ] && mkdir -p ${VM2_HDD_PATH}
+
+if [ ! -x "$(command -v wget)" ]; then
+	apt-get install -y wget
+fi
+
+if [ ! -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 ]; then
+	wget -O /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 ${VM_BASE_IMAGE}
+fi
+cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 ${VM1_HDD}
+cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 ${VM2_HDD}
+
+# create iso for vm1 and vm2
+mkisofs -o "${VM1_CONFIG_ISO}" -V cidata -r -J ${SCRIPTPATH}/config-drives/vm1-config
+mkisofs -o "${VM2_CONFIG_ISO}" -V cidata -r -J ${SCRIPTPATH}/config-drives/vm2-config
 
 ## create vm1
 #virt-install \
