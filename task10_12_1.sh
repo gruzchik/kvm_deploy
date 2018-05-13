@@ -103,6 +103,13 @@ cat <<EOF > ${SCRIPTPATH}/config-drives/vm1-config/user-data
 #cloud-config
 ssh_authorized_keys:
   - $(cat  $SSH_PUB_KEY)
+runcmd:
+  - apt-get update
+  - apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
+  - apt-get update
+  - apt-get install -y docker-ce docker-compose
 EOF
 
 # starting configuration for vm2
@@ -126,6 +133,14 @@ cat <<EOF > ${SCRIPTPATH}/config-drives/vm2-config/user-data
 #cloud-config
 ssh_authorized_keys:
   - $(cat  $SSH_PUB_KEY)
+#runcmd:
+#  - apt-get update
+#  - apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+#  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+#  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
+#  - apt-get update
+##  - apt-get install -y apache2
+#  - apt-get install -y docker-ce docker-compose
 EOF
 
 # create iso for vm1 and vm2
