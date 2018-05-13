@@ -80,6 +80,7 @@ cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 
 # starting configuration for vm1
 #ssh-keygen -t rsa -f $HOME/.ssh/id_rsa3 -q -N ""
 [ ! -d ${SCRIPTPATH}/config-drives/vm1-config ] && mkdir -p ${SCRIPTPATH}/config-drives/vm1-config
+# meta-data vm1
 cat <<EOF > ${SCRIPTPATH}/config-drives/vm1-config/meta-data
 instance-id: iid-abcdefg
 hostname: vm1
@@ -100,6 +101,7 @@ network-interfaces: |
   netmask ${MANAGEMENT_NET_MASK}
 EOF
 
+# user-data vm1
 cat <<EOF > ${SCRIPTPATH}/config-drives/vm1-config/user-data
 #cloud-config
 ssh_authorized_keys:
@@ -120,6 +122,7 @@ EOF
 
 # starting configuration for vm2
 [ ! -d ${SCRIPTPATH}/config-drives/vm2-config ] && mkdir -p ${SCRIPTPATH}/config-drives/vm2-config
+# meta-data vm2
 cat <<EOF > ${SCRIPTPATH}/config-drives/vm2-config/meta-data
 instance-id: iid2-abcdefg
 hostname: vm2
@@ -137,6 +140,7 @@ network-interfaces: |
   netmask ${MANAGEMENT_NET_MASK}
 EOF
 
+# user-data vm2
 cat <<EOF > ${SCRIPTPATH}/config-drives/vm2-config/user-data
 #cloud-config
 ssh_authorized_keys:
@@ -162,7 +166,7 @@ echo 'create vm1...'
 virt-install \
 --connect qemu:///system \
 --name ${VM1_NAME} \
---ram ${VM1_MB_RAM} --vcpus=${VM1_NUM_CPU} --hvm \
+--ram ${VM1_MB_RAM} --vcpus=${VM1_NUM_CPU} --${VM_TYPE} \
 --os-type=linux --os-variant=generic \
 --disk path=${VM1_HDD},format=qcow2,bus=virtio,cache=none \
 --disk path=${VM1_CONFIG_ISO},device=cdrom \
@@ -170,7 +174,7 @@ virt-install \
 --network network=${INTERNAL_NET_NAME} \
 --network network=${MANAGEMENT_NET_NAME} \
 --graphics vnc,port=-1 \
---noautoconsole --quiet --virt-type kvm --import
+--noautoconsole --quiet --virt-type "${VM_VIRT_TYPE}" --import
 
 # create vm2
 echo 'create vm2...'
@@ -181,7 +185,6 @@ virt-install \
 --os-type=linux --os-variant=generic \
 --disk path=${VM2_HDD},format=qcow2,bus=virtio,cache=none \
 --disk path=${VM2_CONFIG_ISO},device=cdrom \
---network network=${EXTERNAL_NET_NAME} \
 --network network=${INTERNAL_NET_NAME} \
 --network network=${MANAGEMENT_NET_NAME} \
 --graphics vnc,port=-1 \
