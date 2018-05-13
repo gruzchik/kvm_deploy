@@ -5,6 +5,13 @@ SCRIPTPATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # enable config file
 source ${SCRIPTPATH}/config
 
+# check and clear live vm's for multiple launches possibility with different infrastructure options
+for i in $(virsh list | awk {' print $2'}); do
+	if [[ $i == 'vm1' ]] || [[ $i == 'vm2' ]];then
+		/bin/bash ${SCRIPTPATH}/revert.sh
+	fi
+done
+
 echo vm1=${VM1_NAME}
 echo vm2=${VM2_NAME}
 
