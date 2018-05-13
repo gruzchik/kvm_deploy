@@ -78,10 +78,55 @@ cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 
 cp -f /var/lib/libvirt/images/xenial-server-cloudimg-amd64-disk1-template.qcow2 ${VM2_HDD}
 
 # starting configuration for vm1
+#ssh-keygen -t rsa -f $HOME/.ssh/id_rsa3 -q -N ""
 [ ! -d ${SCRIPTPATH}/config-drives/vm1-config ] && mkdir -p ${SCRIPTPATH}/config-drives/vm1-config
+cat <<EOF > ${SCRIPTPATH}/config-drives/vm1-config/meta-data
+instance-id: iid-abcdefg
+hostname: vm1
+network-interfaces: |
 
-# starting configuration for vm1
+  auto ${VM1_EXTERNAL_IF}
+  iface ${VM1_EXTERNAL_IF} inet dhcp
+
+  auto ${VM1_INTERNAL_IF}
+  iface ${VM1_INTERNAL_IF} inet static
+  address ${VM1_INTERNAL_IP}
+  netmask ${INTERNAL_NET_MASK}
+
+  auto ${VM1_MANAGEMENT_IF}
+  iface ${VM1_MANAGEMENT_IF} inet static
+  address 192.168.0.101
+  netmask ${MANAGEMENT_NET_MASK}
+EOF
+
+cat <<EOF > ${SCRIPTPATH}/config-drives/vm1-config/user-data
+#cloud-config
+ssh_authorized_keys:
+  - $(cat  $SSH_PUB_KEY)
+EOF
+
+# starting configuration for vm2
 [ ! -d ${SCRIPTPATH}/config-drives/vm2-config ] && mkdir -p ${SCRIPTPATH}/config-drives/vm2-config
+cat <<EOF > ${SCRIPTPATH}/config-drives/vm2-config/meta-data
+instance-id: iid2-abcdefg
+hostname: vm2
+network-interfaces: |
+  auto ${VM2_INTERNAL_IF}
+  iface ${VM2_INTERNAL_IF} inet static
+  address ${VM2_INTERNAL_IP}
+  netmask ${INTERNAL_NET_MASK}
+
+  auto ${VM2_MANAGEMENT_IF}
+  iface ${VM2_MANAGEMENT_IF} inet static
+  address 192.168.0.102
+  netmask ${MANAGEMENT_NET_MASK}
+EOF
+
+cat <<EOF > ${SCRIPTPATH}/config-drives/vm2-config/user-data
+#cloud-config
+ssh_authorized_keys:
+  - $(cat  $SSH_PUB_KEY)
+EOF
 
 # create iso for vm1 and vm2
 mkisofs -o "${VM1_CONFIG_ISO}" -V cidata -r -J ${SCRIPTPATH}/config-drives/vm1-config
@@ -96,7 +141,7 @@ virt-install \
 --os-type=linux --os-variant=generic \
 --disk path=${VM1_HDD},format=qcow2,bus=virtio,cache=none \
 --disk path=${VM1_CONFIG_ISO},device=cdrom \
---network network=${EXTERNAL_NET_NAME} \
+--network network=${EXTERNAL_NET_NAME},mac=${MAC} \
 --network network=${INTERNAL_NET_NAME} \
 --network network=${MANAGEMENT_NET_NAME} \
 --graphics vnc,port=-1 \
