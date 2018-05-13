@@ -86,6 +86,7 @@ hostname: vm1
 network-interfaces: |
 
   auto ${VM1_EXTERNAL_IF}
+  allow-hotplug ${VM1_EXTERNAL_IF}
   iface ${VM1_EXTERNAL_IF} inet dhcp
 
   auto ${VM1_INTERNAL_IF}
@@ -95,7 +96,7 @@ network-interfaces: |
 
   auto ${VM1_MANAGEMENT_IF}
   iface ${VM1_MANAGEMENT_IF} inet static
-  address 192.168.0.101
+  address ${VM1_MANAGEMENT_IP}
   netmask ${MANAGEMENT_NET_MASK}
 EOF
 
@@ -104,12 +105,17 @@ cat <<EOF > ${SCRIPTPATH}/config-drives/vm1-config/user-data
 ssh_authorized_keys:
   - $(cat  $SSH_PUB_KEY)
 runcmd:
+  - ip link add ${VXLAN_IF} type vxlan id ${VID} remote ${VM2_INTERNAL_IP} local ${VM1_INTERNAL_IP} dstport 4789
+  - ip link set ${VXLAN_IF} up
+  - ip addr add ${VM1_VXLAN_IP}/24 dev ${VXLAN_IF}
+  - echo "1" > /proc/sys/net/ipv4/ip_forward
+  - iptables -t nat -I POSTROUTING -o ${VM1_EXTERNAL_IF} -j MASQUERADE
   - apt-get update
   - apt-get install -y apt-transport-https ca-certificates curl software-properties-common
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
   - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
   - apt-get update
-  - apt-get install -y docker-ce docker-compose
+  - apt-get install -y docker-ce
 EOF
 
 # starting configuration for vm2
@@ -122,10 +128,12 @@ network-interfaces: |
   iface ${VM2_INTERNAL_IF} inet static
   address ${VM2_INTERNAL_IP}
   netmask ${INTERNAL_NET_MASK}
+  gateway ${VM1_INTERNAL_IP}
+  dns-nameservers ${VM_DNS}
 
   auto ${VM2_MANAGEMENT_IF}
   iface ${VM2_MANAGEMENT_IF} inet static
-  address 192.168.0.102
+  address ${VM2_MANAGEMENT_IP}
   netmask ${MANAGEMENT_NET_MASK}
 EOF
 
@@ -133,14 +141,16 @@ cat <<EOF > ${SCRIPTPATH}/config-drives/vm2-config/user-data
 #cloud-config
 ssh_authorized_keys:
   - $(cat  $SSH_PUB_KEY)
-#runcmd:
-#  - apt-get update
-#  - apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-#  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-#  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
-#  - apt-get update
-##  - apt-get install -y apache2
-#  - apt-get install -y docker-ce docker-compose
+runcmd:
+  - ip link add ${VXLAN_IF} type vxlan id ${VID} remote ${VM1_INTERNAL_IP} local ${VM2_INTERNAL_IP} dstport 4789
+  - ip link set ${VXLAN_IF} up
+  - ip addr add ${VM2_VXLAN_IP}/24 dev ${VXLAN_IF}
+  - apt-get update
+  - apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable"
+  - apt-get update
+  - apt-get install -y docker-ce
 EOF
 
 # create iso for vm1 and vm2
